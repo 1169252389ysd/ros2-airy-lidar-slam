@@ -26,6 +26,7 @@
 | [hku-mars/FAST-LIO](https://github.com/hku-mars/FAST-LIO) | HKU MARS Lab | 原始算法 |
 | [Ericsii/FAST_LIO_ROS2](https://github.com/Ericsii/FAST_LIO_ROS2) | Ericsii | ROS2 移植 |
 | [Ilyes-Origamist/robosense_fast_lio](https://github.com/Ilyes-Origamist/robosense_fast_lio) | Ilyes-Origamist | Airy handler + 外参标定 |
+| [RuanJY/robosense_fast_lio](https://github.com/RuanJY/robosense_fast_lio) | RuanJY | Airy 点云预处理 |
 
 ## 快速开始
 

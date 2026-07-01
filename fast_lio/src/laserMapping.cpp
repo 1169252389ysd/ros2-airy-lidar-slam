@@ -40,7 +40,6 @@
 #include <csignal>
 #include <chrono>
 #include <unistd.h>
-#include <Python.h>
 #include <so3_math.h>
 #include <rclcpp/rclcpp.hpp>
 #include <Eigen/Core>
