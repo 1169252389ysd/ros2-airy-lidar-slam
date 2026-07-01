@@ -1,0 +1,55 @@
+/**:
+    ros__parameters:
+        # ─────────────────────────────────────────────
+        # Ilyes-Origamist/robosense_fast_lio RS-Airy 分支参数
+        # lidar_type: 5=RSAIRY, robosenseAiry_handler
+        #   支持 XYZIRT（调用M1 handler）和 XYZI（体素降采样）
+        # ─────────────────────────────────────────────
+        feature_extract_enable: false
+        point_filter_num: 3               # Ilyes: keep 1/3 points
+        max_iteration: 4
+        filter_size_surf: 0.1             # Ilyes: 0.1
+        filter_size_map: 0.1              # Ilyes: 0.1
+        cube_side_length: 1000.0          # Ilyes: 1000
+        runtime_pos_log_enable: true
+        map_file_path: "./test.pcd"
+
+        common:
+            lid_topic:  "/rslidar_points"
+            imu_topic:  "/rslidar_imu_data"
+
+            time_sync_en: false
+            time_offset_lidar_to_imu: 0.0
+            deskew_en: true               # true: 运动补偿; false: 假设一帧内所有点同一时刻
+
+        preprocess:
+            lidar_type: 5                 # 5=RSAIRY (robosenseAiry_handler)
+            scan_line: 96
+            scan_rate: 10
+            timestamp_unit: 0             # 0=second (Airy timestamp 是秒)
+            blind: 0.1
+
+        mapping:
+            acc_cov: 0.05                 # Ilyes 标定值 
+            gyr_cov: 0.05
+            b_acc_cov: 0.0002
+            b_gyr_cov: 0.0002
+            fov_degree:    360.0
+            det_range:     20.0           # 室内近距离
+            max_height:    2.5            # 高度过滤
+            max_search_dist_surf: 1.0     # 面特征匹配最大距离
+            extrinsic_est_en:  false   #外参标定测算
+            extrinsic_T: [0.004250, 0.004180, -0.004460]   # Ilyes 标定值
+            extrinsic_R: [0.0033883,  -0.99997669,  0.00592802,
+                         -0.99999315, -0.00339705, -0.00146638,
+                          0.00148648, -0.00592301, -0.99998135]
+
+        publish:
+            path_en:  true
+            scan_publish_en:  true
+            dense_publish_en: true
+            scan_bodyframe_pub_en: true
+            map_en: true
+
+        pcd_save:
+            pcd_save_en: true
