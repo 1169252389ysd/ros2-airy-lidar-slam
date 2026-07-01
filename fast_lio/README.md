@@ -1,35 +1,47 @@
-# FAST-LIO ROS2 — RoboSense Airy 96线 完整部署
+# FAST-LIO ROS2 — RoboSense Airy 96线
 
-基于 FAST-LIO2 的 ROS2 Humble 移植，专门适配 **RoboSense Airy (RSAIRY) 96线** 机械式激光雷达及其内置 IMU。
+基于 [FAST-LIO2](https://github.com/hku-mars/FAST-LIO) 的 ROS2 Humble 移植，专门适配 **RoboSense Airy (RSAIRY) 96线** 360° 机械式激光雷达及内置 IMU。
+
+## 核心贡献：Airy 外参标定
+
+Airy 内置 IMU 输出 **NED 坐标系**（X前-Y右-Z下），而 FAST-LIO 内部使用 **FLU 坐标系**（X前-Y左-Z上），且 LiDAR 与 IMU 芯片存在约 90° 的物理安装偏转。`extrinsic_R` 必须同时补偿这两个差异。
+
+详见 RoboSense 官方文档：[链接待补充]
+
+| | LiDAR 坐标系 | IMU 坐标系 |
+|---|-------------|-----------|
+| X 轴 | 前 | 前 |
+| Y 轴 | 右 | 右 |
+| Z 轴 | 上 | **下**（NED，重力方向） |
+
+`extrinsic_R` 约等于 **R_z(-89.8°) × R_x(179.7°)**，即 IMU 芯片相对于 LiDAR 有约 -90° yaw + Z 轴翻转。这也是为什么直接使用单位矩阵做外参会失败——它忽略了物理安装偏转和坐标系差异。
+
+> 换一台新 Airy 设备部署时，先启用 `extrinsic_est_en: true` 跑几分钟做在线标定，确认 `ext_roll ≈ 180°, ext_yaw ≈ -90°` 即说明该设备与当前标定值一致。
 
 ## 代码来源
 
-本仓库在原作基础上做了 Airy 雷达适配和 ROS2 部署修复，主要引用：
-
-| 仓库 | 贡献 |
-|------|------|
-| [hku-mars/FAST-LIO](https://github.com/hku-mars/FAST-LIO) | 原始 FAST-LIO/FAST-LIO2 算法 |
-| [Ericsii/FAST_LIO_ROS2](https://github.com/Ericsii/FAST_LIO_ROS2) | ROS2 Humble 移植 |
-| [Ilyes-Origamist/robosense_fast_lio](https://github.com/Ilyes-Origamist/robosense_fast_lio) (RS-Airy 分支) | Airy 雷达预处理、坐标系对齐 |
-| 本仓库 | Airy 96线完整部署：地图累积修复、NED→FLU 外参方案、参数精调 |
+| 仓库 | 作者 | 贡献 |
+|------|------|------|
+| [hku-mars/FAST-LIO](https://github.com/hku-mars/FAST-LIO) | HKU MARS Lab | 原始 FAST-LIO/FAST-LIO2 算法 |
+| [Ericsii/FAST_LIO_ROS2](https://github.com/Ericsii/FAST_LIO_ROS2) | [Ericsii](https://github.com/Ericsii) | ROS2 Humble 移植 |
+| [Ilyes-Origamist/robosense_fast_lio](https://github.com/Ilyes-Origamist/robosense_fast_lio) (RS-Airy) | [Ilyes-Origamist](https://github.com/Ilyes-Origamist) | Airy handler、外参标定值、坐标系方案 |
+| 本仓库 | — | 96线部署完整文档、外参原理、地图累积修复、参数精调 |
 
 ## 硬件
 
-- 激光雷达：RoboSense Airy (RSAIRY) 96线（360° 机械旋转式）
-- IMU：Airy 内置 IMU（NED 坐标系）
+- 激光雷达：RoboSense Airy (RSAIRY) 96线
+- IMU：Airy 内置 IMU
 - 系统：Ubuntu 22.04 + ROS2 Humble
 
 ## 1. 依赖
 
 ```bash
-# ROS2 Humble
-# PCL >= 1.8（apt 默认版本即可）
-# Eigen >= 3.3.4（apt 默认版本即可）
+# PCL、Eigen 用 apt 默认版本即可
 
 # RoboSense 激光雷达驱动
 cd ~/ros2_ws/src
 git clone https://github.com/RoboSense-LiDAR/rslidar_sdk.git
-# 编译前修改 CMakeLists.txt：
+# 编译前修改 rslidar_sdk/CMakeLists.txt：
 #   set(POINT_TYPE XYZIRT)
 #   set(ENABLE_IMU_DATA_PARSE ON)
 cd ~/ros2_ws
@@ -49,64 +61,69 @@ source install/setup.bash
 
 ## 3. 运行
 
-**先启雷达驱动，再启 FAST-LIO：**
+**必须先启动雷达驱动：**
 
 ```bash
 # 终端 1：雷达驱动
-source /opt/ros/humble/setup.bash
-source ~/ros2_ws/install/setup.bash
+source /opt/ros/humble/setup.bash && source ~/ros2_ws/install/setup.bash
 ros2 launch rslidar_sdk humble_start.py
 
 # 终端 2：FAST-LIO
-source /opt/ros/humble/setup.bash
-source ~/fastlio_ws/install/setup.bash
+source /opt/ros/humble/setup.bash && source ~/fastlio_ws/install/setup.bash
 ros2 launch fast_lio mapping_robosenseAiry.launch.py
 ```
 
-启动后**保持静止 3 秒以上**，等终端出现 `IMU Initial Done` 再开始移动。
+⚠️ 启动后**保持静止 ≥3 秒**，等终端出现 `IMU Initial Done` 再移动。否则重力估计错误，建图失败。
 
-## 4. 关键配置
+## 4. 关键参数
 
 `config/robosenseAiry.yaml`：
 
 | 参数 | 值 | 说明 |
 |------|-----|------|
-| `lidar_type` | 5 | RSAIRY 专用 handler |
+| `lidar_type` | 5 | RSAIRY handler |
 | `scan_line` | 96 | Airy 96线 |
-| `timestamp_unit` | 0 | Airy timestamp 单位是秒（非微秒） |
-| `extrinsic_R` | Ilyes 标定值 | 同时处理 NED→FLU 坐标系转换 + 物理安装偏差 |
-| `point_filter_num` | 3 | 每 3 个点保留 1 个 |
+| `timestamp_unit` | 0 | Airy timestamp 是**秒**（容易踩坑！） |
+| `extrinsic_R` | 标定矩阵 | 同时处理 NED→FLU + 安装偏转 |
+| `extrinsic_est_en` | false | 在线标定开关（新设备建议先开） |
+| `point_filter_num` | 3 | 每 3 点保留 1 点 |
 | `deskew_en` | true | 运动补偿（去畸变） |
 
-## 5. 修改要点
+### 外参在线标定
 
-相较于原始 FAST-LIO ROS2 版本，本项目做了以下关键修改：
+```
+yaml 设置 extrinsic_est_en: true + runtime_pos_log_enable: true
+跑几分钟后查看：
+tail -f ~/fastlio_ws/src/FAST_LIO_ROS2/Log/mat_pre.txt
+日志中 ext_roll/ext_pitch/ext_yaw 为实时估计的欧拉角（度）
+```
 
-- `preprocess.h/cpp` — 新增 `RSAIRY=5` 雷达类型和 `robosenseAiry_handler`，支持 XYZIRT（调用 M1 handler 正确使用逐点 timestamp）和 XYZI（体素降采样）双模式
-- `laserMapping.cpp` — 地图累积修复（`pcl_wait_pub` 每帧累积 + 1Hz 发布到 `/Laser_map`）、外参在线估计支持
-- `IMU_Processing.hpp` — `deskew_en` 运动补偿可配置开关
-- `config/robosenseAiry.yaml` — Airy 96线完整参数（IMU 协方差、高度过滤、面匹配距离等）
+## 5. 主要修改
+
+- `preprocess.h/cpp` — `RSAIRY=5` 雷达类型 + `robosenseAiry_handler`：XYZIRT → M1 handler，XYZI → 体素降采样
+- `laserMapping.cpp` — 地图累积修复（每帧累积 + 1Hz 发布 `/Laser_map`），外参在线估计启用
+- `IMU_Processing.hpp` — `deskew_en` 可配置开关
+- `launch/mapping_robosenseAiry.launch.py` — Airy 专用启动文件 + 显示 TF 补偿
 
 ## 6. 保存地图
 
 ```bash
 ros2 service call /map_save std_srvs/srv/Trigger
-# 保存到 yaml 中 map_file_path 指定的路径
 ```
 
 ## 7. RViz 话题
 
 | 话题 | 内容 |
 |------|------|
-| `/cloud_registered` | 当前帧扫描（世界坐标系） |
-| `/Laser_map` | 累积的完整地图 |
-| `/Odometry` | 里程计位姿 |
+| `/cloud_registered` | 当前帧（世界坐标系） |
+| `/Laser_map` | 累积地图 |
+| `/Odometry` | 里程计 |
 | `/path` | 运动路径 |
 
 ## 致谢
 
-原始算法：[FAST-LIO2: Fast Direct LiDAR-inertial Odometry](https://arxiv.org/abs/2107.06829) — Xu Wei, Cai Yixi, He Dongjiao, Lin Jiarong, Zhang Fu (HKU MARS Lab)
+[FAST-LIO2](https://arxiv.org/abs/2107.06829) — Xu Wei, Cai Yixi, He Dongjiao, Lin Jiarong et al. (HKU MARS Lab)
 
 ## 许可证
 
-BSD 3-Clause（与原始 FAST-LIO 一致）
+BSD 3-Clause
