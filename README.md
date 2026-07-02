@@ -12,6 +12,7 @@
 
 - **Airy 外参标定**：NED→FLU 坐标系对齐 + LiDAR-IMU 物理安装偏差，`extrinsic_R ≈ R_z(-89.8°) × R_x(179.7°)`
 - 外参标定方法文档化，新设备部署可复现
+- **外参标定标准文档**：[IMU 外参标定标准](docs/imu_extrinsic_calibration_standard.docx)
 
 ## 硬件
 

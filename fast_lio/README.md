@@ -6,6 +6,8 @@
 
 Airy 内置 IMU 输出 **NED 坐标系**（X前-Y右-Z下），而 FAST-LIO 内部使用 **FLU 坐标系**（X前-Y左-Z上），且 LiDAR 与 IMU 芯片存在约 90° 的物理安装偏转。`extrinsic_R` 必须同时补偿这两个差异。
 
+外参标定标准文档见：[IMU 外参标定标准](../docs/imu_extrinsic_calibration_standard.docx)。
+
 详见 RoboSense 官方文档：[链接待补充]
 
 | | LiDAR 坐标系 | IMU 坐标系 |
