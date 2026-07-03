@@ -31,7 +31,32 @@
 
 ## 快速开始
 
-详见各子目录下的 README。
+**详细步骤见 [fast_lio/README.md](fast_lio/README.md#1-系统依赖)**。
+
+简明版：
+
+```bash
+# 1. 系统依赖
+sudo apt install ros-humble-desktop libpcl-dev libeigen3-dev libomp-dev
+
+# 2. 克隆所有包
+mkdir -p ~/slam_ws/src && cd ~/slam_ws/src
+git clone https://github.com/Livox-SDK/livox_ros_driver2.git
+git clone https://github.com/RoboSense-LiDAR/rslidar_msg.git
+git clone https://github.com/RoboSense-LiDAR/rslidar_sdk.git
+git clone https://github.com/1169252389ysd/ros2-airy-lidar-slam.git
+
+# 3. 配置 rslidar_sdk（CMakeLists.txt 改 POINT_TYPE=XYZIRT, ENABLE_IMU_DATA_PARSE=ON）
+
+# 4. 编译
+cd ~/slam_ws && source /opt/ros/humble/setup.bash
+rosdep install --from-paths src --ignore-src -r -y
+colcon build --symlink-install
+
+# 5. 运行
+source install/setup.bash
+ros2 launch fast_lio mapping_robosenseAiry.launch.py
+```
 
 ## 许可证
 
