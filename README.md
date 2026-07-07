@@ -44,7 +44,8 @@ mkdir -p ~/slam_ws/src && cd ~/slam_ws/src
 git clone https://github.com/Livox-SDK/livox_ros_driver2.git
 git clone https://github.com/RoboSense-LiDAR/rslidar_msg.git
 git clone https://github.com/RoboSense-LiDAR/rslidar_sdk.git
-git clone https://github.com/1169252389ysd/ros2-airy-lidar-slam.git
+git clone https://github.com/1169252389ysd/ros2-airy-lidar-slam.git --recursive
+# ⚠️ --recursive 必须！否则 ikd-Tree 子模块缺失，建图会漂移
 
 # 3. 配置 rslidar_sdk（CMakeLists.txt 改 POINT_TYPE=XYZIRT, ENABLE_IMU_DATA_PARSE=ON）
 
